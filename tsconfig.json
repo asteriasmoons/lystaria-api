@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+
     "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2020",
@@ -19,5 +22,6 @@
     "strict": true,
 
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"]
 }
