@@ -40,7 +40,7 @@ router.post("/", async (req, res) => {
     };
 
     const titleA = rawTitle;
-    const titleB = stripSubtitle(rawTitle);
+    const titleB = (rawTitle.split(":")[0] ?? rawTitle).trim();
     const authorA = rawAuthor;
 
     const titleTokensFull = tokens(titleA);
@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
       const gbResp = await fetch(gbUrl);
 
       if (gbResp.ok) {
-        const gb = await gbResp.json();
+        const gb: any = await gbResp.json();
         const items = Array.isArray(gb?.items) ? gb.items : [];
 
         let best: any = null;
@@ -144,7 +144,7 @@ router.post("/", async (req, res) => {
       const olResp = await fetch(olUrl);
 
       if (olResp.ok) {
-        const ol = await olResp.json();
+        const ol: any = await olResp.json();
         const docs = Array.isArray(ol?.docs) ? ol.docs : [];
 
         const scored = docs
@@ -183,7 +183,7 @@ router.post("/", async (req, res) => {
 
           if (!workResp.ok) continue;
 
-          const work = await workResp.json();
+          const work: any = await workResp.json();
           const desc = work?.description;
 
           const summary =

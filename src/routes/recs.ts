@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch recommendations" });
     }
 
-    const gb = await gbResp.json();
+    const gb: any = await gbResp.json();
     const items = Array.isArray(gb?.items) ? gb.items : [];
 
     const recs = items
