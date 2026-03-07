@@ -28,7 +28,7 @@ app.use("/api/journal", journalRoutes);
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGOdB_URI as string)
+  .connect(process.env.MONGODB_URI as string)
   .then(() => {
     console.log("MongoDB Atlas connected");
 
