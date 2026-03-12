@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import summaryRoute from "./routes/summary";
 import recsRoute from "./routes/recs";
 import journalRoutes from "./routes/journal";
+import astrologyRoutes from "./routes/astrology";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 app.use("/api/books/summary", summaryRoute);
 app.use("/api/books/recs", recsRoute);
 app.use("/api/journal", journalRoutes);
+app.use("/api/astrology", astrologyRoutes);
 
 // MongoDB connection
 mongoose
