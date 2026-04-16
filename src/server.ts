@@ -7,6 +7,7 @@ import summaryRoute from "./routes/summary";
 import recsRoute from "./routes/recs";
 import journalRoutes from "./routes/journal";
 import astrologyRoutes from "./routes/astrology";
+import sharedEventsRouter from "./routes/shared-events-routes";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/api/books/summary", summaryRoute);
 app.use("/api/books/recs", recsRoute);
 app.use("/api/journal", journalRoutes);
 app.use("/api/astrology", astrologyRoutes);
+app.use("/api/shared-events", sharedEventsRouter);
 
 // MongoDB connection
 mongoose
