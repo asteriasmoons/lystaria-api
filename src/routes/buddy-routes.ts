@@ -38,9 +38,14 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     return res.status(status).json({ success: false, error: message });
   }
 
+  function str(val: unknown): string {
+    if (typeof val === "string") return val;
+    if (Array.isArray(val) && typeof val[0] === "string") return val[0];
+    return "";
+  }
+
   // ── Announcement board ────────────────────────────────────────────────────
 
-  // POST /api/buddy/announcements — post a new announcement
   router.post("/announcements", async (req: Request, res: Response) => {
     try {
       const announcement = await postAnnouncement(req.body);
@@ -50,11 +55,9 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // GET /api/buddy/announcements — global board (pass ?userId=xxx to exclude own)
   router.get("/announcements", async (req: Request, res: Response) => {
     try {
-      const currentUserId =
-        typeof req.query.userId === "string" ? req.query.userId : undefined;
+      const currentUserId = str(req.query.userId) || undefined;
       const announcements = await getBoard(currentUserId);
       return res.json({ success: true, announcements });
     } catch (error) {
@@ -62,11 +65,9 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // GET /api/buddy/announcements/mine — current user's active announcement
   router.get("/announcements/mine", async (req: Request, res: Response) => {
     try {
-      const userId =
-        typeof req.query.userId === "string" ? req.query.userId : "";
+      const userId = str(req.query.userId);
       const announcement = await getMyAnnouncement(userId);
       return res.json({ success: true, announcement });
     } catch (error) {
@@ -74,11 +75,10 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // PATCH /api/buddy/announcements/:id — update announcement details
   router.patch("/announcements/:id", async (req: Request, res: Response) => {
     try {
       const announcement = await updateAnnouncement({
-        announcementId: req.params.id,
+        announcementId: str(req.params.id),
         ownerUserId: req.body.ownerUserId,
         message: req.body.message,
         currentChapter: req.body.currentChapter,
@@ -91,12 +91,10 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // DELETE /api/buddy/announcements/:id — remove from board
   router.delete("/announcements/:id", async (req: Request, res: Response) => {
     try {
-      const ownerUserId =
-        typeof req.query.userId === "string" ? req.query.userId : "";
-      await removeAnnouncement(req.params.id, ownerUserId);
+      const ownerUserId = str(req.query.userId);
+      await removeAnnouncement(str(req.params.id), ownerUserId);
       return res.json({ success: true });
     } catch (error) {
       return handleError(res, error);
@@ -105,7 +103,6 @@ export function createBuddyRouter(io: SocketIOServer): Router {
 
   // ── Groups ────────────────────────────────────────────────────────────────
 
-  // POST /api/buddy/groups/request — send a join request
   router.post("/groups/request", async (req: Request, res: Response) => {
     try {
       const group = await requestToJoin(
@@ -122,12 +119,11 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // POST /api/buddy/groups/:id/respond — accept or decline a join request
   router.post("/groups/:id/respond", async (req: Request, res: Response) => {
     try {
       const group = await respondToJoinRequest(
         {
-          groupId: req.params.id,
+          groupId: str(req.params.id),
           actorUserId: req.body.actorUserId,
           targetUserId: req.body.targetUserId,
           accept: req.body.accept,
@@ -140,34 +136,29 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // POST /api/buddy/groups/:id/leave — leave a group
   router.post("/groups/:id/leave", async (req: Request, res: Response) => {
     try {
-      await leaveGroup({ groupId: req.params.id, userId: req.body.userId }, io);
+      await leaveGroup({ groupId: str(req.params.id), userId: req.body.userId }, io);
       return res.json({ success: true });
     } catch (error) {
       return handleError(res, error);
     }
   });
 
-  // GET /api/buddy/groups/:id — get group details
-  router.get("/groups/:id", async (req: Request, res: Response) => {
+  router.get("/groups/mine", async (req: Request, res: Response) => {
     try {
-      const userId =
-        typeof req.query.userId === "string" ? req.query.userId : "";
-      const group = await getGroup(req.params.id, userId);
+      const userId = str(req.query.userId);
+      const group = await getMyGroup(userId);
       return res.json({ success: true, group });
     } catch (error) {
       return handleError(res, error);
     }
   });
 
-  // GET /api/buddy/groups/mine — get current user's active group
-  router.get("/groups/mine", async (req: Request, res: Response) => {
+  router.get("/groups/:id", async (req: Request, res: Response) => {
     try {
-      const userId =
-        typeof req.query.userId === "string" ? req.query.userId : "";
-      const group = await getMyGroup(userId);
+      const userId = str(req.query.userId);
+      const group = await getGroup(str(req.params.id), userId);
       return res.json({ success: true, group });
     } catch (error) {
       return handleError(res, error);
@@ -176,12 +167,11 @@ export function createBuddyRouter(io: SocketIOServer): Router {
 
   // ── Messages ──────────────────────────────────────────────────────────────
 
-  // POST /api/buddy/groups/:id/messages — send a message
   router.post("/groups/:id/messages", async (req: Request, res: Response) => {
     try {
       const message = await sendMessage(
         {
-          groupId: req.params.id,
+          groupId: str(req.params.id),
           senderUserId: req.body.senderUserId,
           senderDisplayName: req.body.senderDisplayName,
           type: req.body.type,
@@ -197,18 +187,15 @@ export function createBuddyRouter(io: SocketIOServer): Router {
     }
   });
 
-  // GET /api/buddy/groups/:id/messages — paginated message history
   router.get("/groups/:id/messages", async (req: Request, res: Response) => {
     try {
-      const userId =
-        typeof req.query.userId === "string" ? req.query.userId : "";
-      const before =
-        typeof req.query.before === "string" ? req.query.before : null;
-      const limit =
-        typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 50;
+      const userId = str(req.query.userId);
+      const before = str(req.query.before) || null;
+      const limitRaw = str(req.query.limit);
+      const limit = limitRaw ? parseInt(limitRaw, 10) : 50;
 
       const messages = await getMessages({
-        groupId: req.params.id,
+        groupId: str(req.params.id),
         userId,
         before,
         limit,
