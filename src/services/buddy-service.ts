@@ -33,7 +33,7 @@ type RequestToJoinInput = {
 
 type RespondToJoinRequestInput = {
   groupId: string;
-  actorUserId: string; // must be group owner
+  actorUserId: string;
   targetUserId: string;
   accept: boolean;
 };
@@ -56,7 +56,7 @@ type SendMessageInput = {
 type GetMessagesInput = {
   groupId: string;
   userId: string;
-  before?: string | null; // message _id cursor for pagination
+  before?: string | null;
   limit?: number;
 };
 
@@ -90,7 +90,6 @@ function activeJoinedCount(group: IBuddyGroup): number {
 export async function postAnnouncement(
   input: PostAnnouncementInput,
 ): Promise<IBuddyAnnouncement> {
-  // Deactivate any existing active announcement from this user first
   await BuddyAnnouncement.updateMany(
     { ownerUserId: input.ownerUserId, isActive: true },
     { isActive: false },
@@ -121,7 +120,6 @@ export async function getBoard(
 ): Promise<IBuddyAnnouncement[]> {
   const now = new Date();
 
-  // Expire stale announcements in the background
   BuddyAnnouncement.updateMany(
     { isActive: true, expiresAt: { $lt: now } },
     { isActive: false },
@@ -130,8 +128,6 @@ export async function getBoard(
   return BuddyAnnouncement.find({
     isActive: true,
     expiresAt: { $gte: now },
-    // Exclude the current user's own announcement from the board view
-    ...(currentUserId ? { ownerUserId: { $ne: currentUserId } } : {}),
   }).sort({ createdAt: -1 });
 }
 
@@ -183,10 +179,7 @@ export async function requestToJoin(
   const announcement = await BuddyAnnouncement.findById(input.announcementId);
   if (!announcement || !announcement.isActive)
     throw new Error("ANNOUNCEMENT_NOT_FOUND");
-  if (announcement.ownerUserId === input.requesterUserId)
-    throw new Error("CANNOT_JOIN_OWN_ANNOUNCEMENT");
 
-  // Find or create the group for this announcement
   let group = await BuddyGroup.findOne({ announcementId: input.announcementId });
 
   if (!group) {
@@ -210,25 +203,24 @@ export async function requestToJoin(
       isActive: true,
     });
 
-    // Link group back to announcement
     announcement.groupId = String(group._id);
     await announcement.save();
   }
 
-  // Check capacity
-  const joinedCount = activeJoinedCount(group);
-  if (joinedCount >= group.maxMembers) throw new Error("GROUP_FULL");
-
-  // Check if already a member
+  // If requester is already a joined member (e.g. the owner joining their own
+  // announcement during testing), just return the group directly
   const existing = group.members.find((m) => m.userId === input.requesterUserId);
   if (existing) {
-    if (existing.status === "joined") throw new Error("ALREADY_A_MEMBER");
+    if (existing.status === "joined") return group;
     if (existing.status === "pending") throw new Error("REQUEST_ALREADY_SENT");
     // status === "left" — allow re-request
     existing.status = "pending";
     existing.requestedAt = new Date();
     existing.joinedAt = null;
   } else {
+    const joinedCount = activeJoinedCount(group);
+    if (joinedCount >= group.maxMembers) throw new Error("GROUP_FULL");
+
     group.members.push({
       userId: input.requesterUserId,
       displayName: input.requesterDisplayName,
@@ -241,7 +233,6 @@ export async function requestToJoin(
 
   await group.save();
 
-  // Notify the group owner in real-time
   io.to(String(group._id)).emit("buddy:join_request", {
     groupId: String(group._id),
     requesterUserId: input.requesterUserId,
@@ -271,7 +262,6 @@ export async function respondToJoinRequest(
     target.status = "joined";
     target.joinedAt = new Date();
 
-    // If group is now at capacity, close the announcement from the board
     const newJoinedCount = activeJoinedCount(group);
     if (newJoinedCount >= group.maxMembers) {
       await BuddyAnnouncement.findByIdAndUpdate(group.announcementId, {
@@ -279,7 +269,6 @@ export async function respondToJoinRequest(
       });
     }
 
-    // System message
     await BuddyMessage.create({
       groupId: String(group._id),
       senderUserId: "system",
@@ -317,7 +306,6 @@ export async function leaveGroup(
   member.status = "left";
   member.joinedAt = null;
 
-  // If the owner leaves, reopen the announcement and assign a new owner
   if (member.isOwner) {
     const nextOwner = group.members.find(
       (m) => m.userId !== input.userId && m.status === "joined",
@@ -325,8 +313,6 @@ export async function leaveGroup(
 
     if (nextOwner) {
       nextOwner.isOwner = true;
-
-      // Reopen the announcement under the new owner
       await BuddyAnnouncement.findByIdAndUpdate(group.announcementId, {
         isActive: true,
         ownerUserId: nextOwner.userId,
@@ -334,14 +320,12 @@ export async function leaveGroup(
         expiresAt: new Date(Date.now() + ANNOUNCEMENT_TTL_MS),
       });
     } else {
-      // No one left — close the group and announcement entirely
       group.isActive = false;
       await BuddyAnnouncement.findByIdAndUpdate(group.announcementId, {
         isActive: false,
       });
     }
   } else {
-    // Non-owner left — reopen the announcement if it was closed due to capacity
     const joinedCount = activeJoinedCount(group);
     if (joinedCount < group.maxMembers) {
       await BuddyAnnouncement.findByIdAndUpdate(group.announcementId, {
