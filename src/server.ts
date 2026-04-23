@@ -11,6 +11,8 @@ import journalRoutes from "./routes/journal";
 import astrologyRoutes from "./routes/astrology";
 import sharedEventsRouter from "./routes/shared-events-routes";
 import { createBuddyRouter } from "./routes/buddy-routes";
+import { createSprintRouter } from "./routes/sprint-routes";
+import { restoreActiveSprintTimers } from "./services/sprint-service";
 
 dotenv.config();
 
@@ -18,51 +20,57 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// Socket.io — attached to the same HTTP server as Express
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: "*", // tighten this to your app's origin if needed
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.json({ status: "Lystaria Books API running" });
 });
 
-// Routes
 app.use("/api/books/summary", summaryRoute);
 app.use("/api/books/recs", recsRoute);
 app.use("/api/journal", journalRoutes);
 app.use("/api/astrology", astrologyRoutes);
 app.use("/api/shared-events", sharedEventsRouter);
 app.use("/api/buddy", createBuddyRouter(io));
+app.use("/api/sprint", createSprintRouter(io));
 
-// Socket.io — buddy reading rooms
 io.on("connection", (socket) => {
-  // Client joins a group room to receive real-time events for that group
+  // ── Buddy reading rooms ──────────────────────────────────────────────────
   socket.on("buddy:join_room", (groupId: string) => {
     socket.join(groupId);
   });
 
-  // Client leaves a group room (e.g. navigating away from the chat)
   socket.on("buddy:leave_room", (groupId: string) => {
     socket.leave(groupId);
+  });
+
+  // ── Sprint global room ───────────────────────────────────────────────────
+  socket.on("sprint:join_room", () => {
+    socket.join("sprint:global");
+  });
+
+  socket.on("sprint:leave_room", () => {
+    socket.leave("sprint:global");
   });
 
   socket.on("disconnect", () => {});
 });
 
-// MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI as string)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB Atlas connected");
+
+    // Restore any sprint timers that were running before a server restart
+    await restoreActiveSprintTimers(io);
 
     httpServer.listen(PORT, () => {
       console.log(`📚 Lystaria Books API running on port ${PORT}`);
