@@ -12,6 +12,9 @@ import {
   getAllTimeLeaderboard,
   getUserLeaderboardEntry,
 } from "../services/sprint-service";
+import { SprintMessage } from "../models/SprintMessage";
+
+const ADMIN_USER_ID = "001664.f2fefbb84f024544b98e865fa6c6b49e.1524";
 
 export function createSprintRouter(io: SocketIOServer): Router {
   const router = Router();
@@ -33,6 +36,7 @@ export function createSprintRouter(io: SocketIOServer): Router {
       : message === "SPRINT_FINISHED" ? 410
       : message === "SPRINT_NOT_IN_SUBMISSION" ? 400
       : message === "NOT_A_PARTICIPANT" ? 403
+      : message === "FORBIDDEN" ? 403
       : 400;
 
     return res.status(status).json({ success: false, error: message });
@@ -40,7 +44,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
 
   // ── Sprint state ──────────────────────────────────────────────────────────
 
-  // GET /api/sprint/active — current active sprint (or null)
   router.get("/active", async (_req: Request, res: Response) => {
     try {
       const sprint = await getActiveSprint();
@@ -52,7 +55,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
 
   // ── Sprint actions ────────────────────────────────────────────────────────
 
-  // POST /api/sprint/start
   router.post("/start", async (req: Request, res: Response) => {
     try {
       const sprint = await startSprint(
@@ -70,7 +72,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
     }
   });
 
-  // POST /api/sprint/:id/join
   router.post("/:id/join", async (req: Request, res: Response) => {
     try {
       const sprint = await joinSprint(
@@ -88,7 +89,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
     }
   });
 
-  // POST /api/sprint/:id/submit
   router.post("/:id/submit", async (req: Request, res: Response) => {
     try {
       const sprint = await submitEndPage(
@@ -107,7 +107,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
 
   // ── Messages ──────────────────────────────────────────────────────────────
 
-  // POST /api/sprint/messages
   router.post("/messages", async (req: Request, res: Response) => {
     try {
       const message = await sendSprintMessage(
@@ -124,7 +123,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
     }
   });
 
-  // GET /api/sprint/messages
   router.get("/messages", async (req: Request, res: Response) => {
     try {
       const before = str(req.query.before) || null;
@@ -137,9 +135,23 @@ export function createSprintRouter(io: SocketIOServer): Router {
     }
   });
 
+  // DELETE /api/sprint/messages — admin only, clears all sprint messages
+  router.delete("/messages", async (req: Request, res: Response) => {
+    try {
+      const userId = str(req.query.userId);
+      if (userId !== ADMIN_USER_ID) {
+        return res.status(403).json({ success: false, error: "FORBIDDEN" });
+      }
+      await SprintMessage.deleteMany({});
+      io.to("sprint:global").emit("sprint:chat_cleared");
+      return res.json({ success: true });
+    } catch (error) {
+      return handleError(res, error);
+    }
+  });
+
   // ── Leaderboard ───────────────────────────────────────────────────────────
 
-  // GET /api/sprint/leaderboard
   router.get("/leaderboard", async (_req: Request, res: Response) => {
     try {
       const leaderboard = await getAllTimeLeaderboard();
@@ -149,7 +161,6 @@ export function createSprintRouter(io: SocketIOServer): Router {
     }
   });
 
-  // GET /api/sprint/leaderboard/:userId
   router.get("/leaderboard/:userId", async (req: Request, res: Response) => {
     try {
       const entry = await getUserLeaderboardEntry(str(req.params.userId));

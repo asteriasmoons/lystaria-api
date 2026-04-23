@@ -16,6 +16,9 @@ import {
   sendMessage,
   getMessages,
 } from "../services/buddy-service";
+import { BuddyMessage } from "../models/BuddyMessage";
+
+const ADMIN_USER_ID = "001664.f2fefbb84f024544b98e865fa6c6b49e.1524";
 
 export function createBuddyRouter(io: SocketIOServer): Router {
   const router = Router();
@@ -201,6 +204,22 @@ export function createBuddyRouter(io: SocketIOServer): Router {
         limit,
       });
       return res.json({ success: true, messages });
+    } catch (error) {
+      return handleError(res, error);
+    }
+  });
+
+  // DELETE /api/buddy/groups/:id/messages — admin only, clears all messages in a group
+  router.delete("/groups/:id/messages", async (req: Request, res: Response) => {
+    try {
+      const userId = str(req.query.userId);
+      if (userId !== ADMIN_USER_ID) {
+        return res.status(403).json({ success: false, error: "FORBIDDEN" });
+      }
+      const groupId = str(req.params.id);
+      await BuddyMessage.deleteMany({ groupId });
+      io.to(groupId).emit("buddy:chat_cleared");
+      return res.json({ success: true });
     } catch (error) {
       return handleError(res, error);
     }
