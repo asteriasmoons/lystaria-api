@@ -1,16 +1,15 @@
 // src/services/sprint-service.ts
 
-import { Sprint, ISprint, ISprintParticipant } from "../models/Sprint";
+import { Sprint, ISprint } from "../models/Sprint";
 import { SprintMessage, ISprintMessage } from "../models/SprintMessage";
-import { SprintLeaderboard } from "../models/SprintLeaderboard";
+import { SprintLeaderboard, ISprintLeaderboard } from "../models/SprintLeaderboard";
 import { Server as SocketIOServer } from "socket.io";
 
 const SPRINT_ROOM = "sprint:global";
-const WAITING_WINDOW_MS = 30 * 1000; // 30 seconds to join before sprint starts
-const WARNING_BEFORE_END_MS = 3 * 60 * 1000; // 3 minute warning
-const SUBMIT_GRACE_MS = 60 * 1000; // 1 minute grace after sprint ends
+const WAITING_WINDOW_MS = 30 * 1000;
+const WARNING_BEFORE_END_MS = 3 * 60 * 1000;
+const SUBMIT_GRACE_MS = 60 * 1000;
 
-// Active timers — cleared on server restart (acceptable for MVP)
 const activeTimers = new Map<string, NodeJS.Timeout[]>();
 
 // ---------------------------------------------------------------------------
@@ -94,15 +93,12 @@ export async function startSprint(
   input: StartSprintInput,
   io: SocketIOServer,
 ): Promise<ISprint> {
-  // Only one sprint at a time
   const existing = await getActiveSprint();
   if (existing) throw new Error("SPRINT_ALREADY_ACTIVE");
 
   const now = new Date();
   const startsAt = new Date(now.getTime() + WAITING_WINDOW_MS);
-  const endsAt = new Date(
-    startsAt.getTime() + input.durationMinutes * 60 * 1000,
-  );
+  const endsAt = new Date(startsAt.getTime() + input.durationMinutes * 60 * 1000);
 
   const sprint = await Sprint.create({
     startedByUserId: input.userId,
@@ -137,17 +133,13 @@ export async function startSprint(
     message: systemMsg.toObject(),
   });
 
-  // Timer 1 — transition waiting → active after 30s
   const startTimer = setTimeout(async () => {
     await transitionToActive(sprintId, io);
   }, WAITING_WINDOW_MS);
   addSprintTimer(sprintId, startTimer);
 
-  // Timer 2 — 3 minute warning before end
   const warningDelay =
-    WAITING_WINDOW_MS +
-    input.durationMinutes * 60 * 1000 -
-    WARNING_BEFORE_END_MS;
+    WAITING_WINDOW_MS + input.durationMinutes * 60 * 1000 - WARNING_BEFORE_END_MS;
 
   if (warningDelay > 0) {
     const warningTimer = setTimeout(async () => {
@@ -156,22 +148,15 @@ export async function startSprint(
     addSprintTimer(sprintId, warningTimer);
   }
 
-  // Timer 3 — sprint ends
-  const endDelay =
-    WAITING_WINDOW_MS + input.durationMinutes * 60 * 1000;
-
   const endTimer = setTimeout(async () => {
     await finishSprint(sprintId, io);
-  }, endDelay + SUBMIT_GRACE_MS);
+  }, WAITING_WINDOW_MS + input.durationMinutes * 60 * 1000 + SUBMIT_GRACE_MS);
   addSprintTimer(sprintId, endTimer);
 
   return sprint;
 }
 
-async function transitionToActive(
-  sprintId: string,
-  io: SocketIOServer,
-): Promise<void> {
+async function transitionToActive(sprintId: string, io: SocketIOServer): Promise<void> {
   const sprint = await Sprint.findById(sprintId);
   if (!sprint || sprint.status !== "waiting") return;
 
@@ -179,48 +164,30 @@ async function transitionToActive(
   await sprint.save();
 
   const msg = await postSystemMessage("Sprint has started! 📖 Start reading.", sprintId);
-
-  io.to(SPRINT_ROOM).emit("sprint:active", {
-    sprintId,
-    message: msg.toObject(),
-  });
+  io.to(SPRINT_ROOM).emit("sprint:active", { sprintId, message: msg.toObject() });
 }
 
-async function transitionToSubmitting(
-  sprintId: string,
-  io: SocketIOServer,
-): Promise<void> {
+async function transitionToSubmitting(sprintId: string, io: SocketIOServer): Promise<void> {
   const sprint = await Sprint.findById(sprintId);
   if (!sprint || sprint.status !== "active") return;
 
   sprint.status = "submitting";
   await sprint.save();
 
-  const msg = await postSystemMessage(
-    "⏰ 3 minutes left! Enter your end page now.",
-    sprintId,
-  );
-
-  io.to(SPRINT_ROOM).emit("sprint:warning", {
-    sprintId,
-    message: msg.toObject(),
-  });
+  const msg = await postSystemMessage("⏰ 3 minutes left! Enter your end page now.", sprintId);
+  io.to(SPRINT_ROOM).emit("sprint:warning", { sprintId, message: msg.toObject() });
 }
 
-async function finishSprint(
-  sprintId: string,
-  io: SocketIOServer,
-): Promise<void> {
+async function finishSprint(sprintId: string, io: SocketIOServer): Promise<void> {
   const sprint = await Sprint.findById(sprintId);
   if (!sprint || sprint.status === "finished") return;
 
   sprint.status = "finished";
 
-  // Calculate pages read and award points for anyone who submitted
   for (const p of sprint.participants) {
     if (p.endPage !== null && p.endPage > p.startPage) {
       p.pagesRead = p.endPage - p.startPage;
-      p.pointsAwarded = p.pagesRead; // 1 point per page
+      p.pointsAwarded = p.pagesRead;
     } else {
       p.pagesRead = 0;
       p.pointsAwarded = 0;
@@ -229,7 +196,6 @@ async function finishSprint(
 
   await sprint.save();
 
-  // Update all-time leaderboard for participants who submitted
   for (const p of sprint.participants) {
     if (p.submittedAt !== null) {
       await SprintLeaderboard.findOneAndUpdate(
@@ -240,17 +206,13 @@ async function finishSprint(
             totalPagesRead: p.pagesRead ?? 0,
             sprintsParticipated: 1,
           },
-          $set: {
-            displayName: p.displayName,
-            lastSprintAt: new Date(),
-          },
+          $set: { displayName: p.displayName, lastSprintAt: new Date() },
         },
         { upsert: true, new: true },
       );
     }
   }
 
-  // Sort participants for leaderboard: submitted first, sorted by pagesRead desc
   const ranked = [...sprint.participants]
     .filter((p) => p.submittedAt !== null)
     .sort((a, b) => (b.pagesRead ?? 0) - (a.pagesRead ?? 0));
@@ -389,22 +351,18 @@ export async function getSprintMessages(
 // ---------------------------------------------------------------------------
 
 export async function getAllTimeLeaderboard(): Promise<ISprintLeaderboard[]> {
-  return SprintLeaderboard.find()
-    .sort({ totalPoints: -1 })
-    .limit(100);
+  return SprintLeaderboard.find().sort({ totalPoints: -1 }).limit(100);
 }
 
-export async function getUserLeaderboardEntry(userId: string) {
+export async function getUserLeaderboardEntry(userId: string): Promise<ISprintLeaderboard | null> {
   return SprintLeaderboard.findOne({ userId });
 }
 
 // ---------------------------------------------------------------------------
-// Restore timers on server restart (best effort)
+// Restore timers on server restart
 // ---------------------------------------------------------------------------
 
-export async function restoreActiveSprintTimers(
-  io: SocketIOServer,
-): Promise<void> {
+export async function restoreActiveSprintTimers(io: SocketIOServer): Promise<void> {
   const sprint = await getActiveSprint();
   if (!sprint) return;
 
@@ -414,45 +372,27 @@ export async function restoreActiveSprintTimers(
   if (sprint.status === "waiting") {
     const startDelay = sprint.startsAt.getTime() - now;
     if (startDelay > 0) {
-      addSprintTimer(
-        sprintId,
-        setTimeout(() => transitionToActive(sprintId, io), startDelay),
-      );
+      addSprintTimer(sprintId, setTimeout(() => transitionToActive(sprintId, io), startDelay));
     } else {
       await transitionToActive(sprintId, io);
     }
   }
 
   if (sprint.status === "waiting" || sprint.status === "active") {
-    const warningAt =
-      sprint.endsAt.getTime() - WARNING_BEFORE_END_MS;
-    const warningDelay = warningAt - now;
+    const warningDelay = sprint.endsAt.getTime() - WARNING_BEFORE_END_MS - now;
     if (warningDelay > 0) {
-      addSprintTimer(
-        sprintId,
-        setTimeout(() => transitionToSubmitting(sprintId, io), warningDelay),
-      );
+      addSprintTimer(sprintId, setTimeout(() => transitionToSubmitting(sprintId, io), warningDelay));
     } else if (sprint.status === "active") {
       await transitionToSubmitting(sprintId, io);
     }
   }
 
-  if (
-    sprint.status === "waiting" ||
-    sprint.status === "active" ||
-    sprint.status === "submitting"
-  ) {
+  if (sprint.status !== "finished") {
     const endDelay = sprint.endsAt.getTime() + SUBMIT_GRACE_MS - now;
     if (endDelay > 0) {
-      addSprintTimer(
-        sprintId,
-        setTimeout(() => finishSprint(sprintId, io), endDelay),
-      );
+      addSprintTimer(sprintId, setTimeout(() => finishSprint(sprintId, io), endDelay));
     } else {
       await finishSprint(sprintId, io);
     }
   }
 }
-
-// Re-export type for routes
-export type { ISprintLeaderboard };

@@ -12,6 +12,7 @@ import astrologyRoutes from "./routes/astrology";
 import sharedEventsRouter from "./routes/shared-events-routes";
 import { createBuddyRouter } from "./routes/buddy-routes";
 import { createSprintRouter } from "./routes/sprint-routes";
+import userRouter from "./routes/user-routes";
 import { restoreActiveSprintTimers } from "./services/sprint-service";
 
 dotenv.config();
@@ -41,9 +42,9 @@ app.use("/api/astrology", astrologyRoutes);
 app.use("/api/shared-events", sharedEventsRouter);
 app.use("/api/buddy", createBuddyRouter(io));
 app.use("/api/sprint", createSprintRouter(io));
+app.use("/api/user", userRouter);
 
 io.on("connection", (socket) => {
-  // ── Buddy reading rooms ──────────────────────────────────────────────────
   socket.on("buddy:join_room", (groupId: string) => {
     socket.join(groupId);
   });
@@ -52,7 +53,6 @@ io.on("connection", (socket) => {
     socket.leave(groupId);
   });
 
-  // ── Sprint global room ───────────────────────────────────────────────────
   socket.on("sprint:join_room", () => {
     socket.join("sprint:global");
   });
@@ -68,10 +68,7 @@ mongoose
   .connect(process.env.MONGODB_URI as string)
   .then(async () => {
     console.log("MongoDB Atlas connected");
-
-    // Restore any sprint timers that were running before a server restart
     await restoreActiveSprintTimers(io);
-
     httpServer.listen(PORT, () => {
       console.log(`📚 Lystaria Books API running on port ${PORT}`);
     });
