@@ -79,6 +79,39 @@ async function postSystemMessage(
   });
 }
 
+async function syncDisplayNameEverywhere(
+  userId: string,
+  nextDisplayName: string,
+): Promise<string> {
+  const trimmed = nextDisplayName.trim();
+  if (!trimmed) return trimmed;
+
+  await Sprint.updateMany(
+    { startedByUserId: userId },
+    { $set: { startedByDisplayName: trimmed } },
+  );
+
+  await Sprint.updateMany(
+    { "participants.userId": userId },
+    { $set: { "participants.$[participant].displayName": trimmed } },
+    {
+      arrayFilters: [{ "participant.userId": userId }],
+    },
+  );
+
+  await SprintMessage.updateMany(
+    { senderUserId: userId },
+    { $set: { senderDisplayName: trimmed } },
+  );
+
+  await SprintLeaderboard.updateMany(
+    { userId },
+    { $set: { displayName: trimmed } },
+  );
+
+  return trimmed;
+}
+
 // ---------------------------------------------------------------------------
 // Sprint lifecycle
 // ---------------------------------------------------------------------------
@@ -96,13 +129,15 @@ export async function startSprint(
   const existing = await getActiveSprint();
   if (existing) throw new Error("SPRINT_ALREADY_ACTIVE");
 
+  const displayName = await syncDisplayNameEverywhere(input.userId, input.displayName);
+
   const now = new Date();
   const startsAt = new Date(now.getTime() + WAITING_WINDOW_MS);
   const endsAt = new Date(startsAt.getTime() + input.durationMinutes * 60 * 1000);
 
   const sprint = await Sprint.create({
     startedByUserId: input.userId,
-    startedByDisplayName: input.displayName,
+    startedByDisplayName: displayName,
     durationMinutes: input.durationMinutes,
     startsAt,
     endsAt,
@@ -110,7 +145,7 @@ export async function startSprint(
     participants: [
       {
         userId: input.userId,
-        displayName: input.displayName,
+        displayName: displayName,
         startPage: input.startPage,
         endPage: null,
         pagesRead: null,
@@ -124,7 +159,7 @@ export async function startSprint(
   const sprintId = String(sprint._id);
 
   const systemMsg = await postSystemMessage(
-    `${input.displayName} started a ${input.durationMinutes} minute reading sprint! Join now before it begins.`,
+    `${displayName} started a ${input.durationMinutes} minute reading sprint! Join now before it begins.`,
     sprintId,
   );
 
@@ -256,12 +291,14 @@ export async function joinSprint(
   if (!sprint) throw new Error("SPRINT_NOT_FOUND");
   if (sprint.status === "finished") throw new Error("SPRINT_FINISHED");
 
+  const displayName = await syncDisplayNameEverywhere(input.userId, input.displayName);
+
   const existing = sprint.participants.find((p) => p.userId === input.userId);
   if (existing) throw new Error("ALREADY_JOINED");
 
   sprint.participants.push({
     userId: input.userId,
-    displayName: input.displayName,
+    displayName: displayName,
     startPage: input.startPage,
     endPage: null,
     pagesRead: null,
@@ -273,14 +310,14 @@ export async function joinSprint(
   await sprint.save();
 
   const msg = await postSystemMessage(
-    `${input.displayName} joined the sprint!`,
+    `${displayName} joined the sprint!`,
     input.sprintId,
   );
 
   io.to(SPRINT_ROOM).emit("sprint:joined", {
     sprintId: input.sprintId,
     userId: input.userId,
-    displayName: input.displayName,
+    displayName: displayName,
     message: msg.toObject(),
   });
 
@@ -323,9 +360,14 @@ export async function sendSprintMessage(
   input: SendSprintMessageInput,
   io: SocketIOServer,
 ): Promise<ISprintMessage> {
+  const displayName = await syncDisplayNameEverywhere(
+    input.senderUserId,
+    input.senderDisplayName,
+  );
+
   const message = await SprintMessage.create({
     senderUserId: input.senderUserId,
-    senderDisplayName: input.senderDisplayName,
+    senderDisplayName: displayName,
     type: "text",
     text: input.text,
     sprintId: null,
