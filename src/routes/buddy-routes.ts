@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from "socket.io";
 import {
   postAnnouncement,
   getBoard,
-  getMyAnnouncement,
+  getMyAnnouncements,
   removeAnnouncement,
   updateAnnouncement,
   requestToJoin,
@@ -28,6 +28,7 @@ export function createBuddyRouter(io: SocketIOServer): Router {
 
     const status =
       message === "ANNOUNCEMENT_NOT_FOUND" ? 404
+      : message === "ANNOUNCEMENT_LIMIT_REACHED" ? 409
       : message === "GROUP_NOT_FOUND" ? 404
       : message === "REQUEST_NOT_FOUND" ? 404
       : message === "FORBIDDEN" ? 403
@@ -71,8 +72,8 @@ export function createBuddyRouter(io: SocketIOServer): Router {
   router.get("/announcements/mine", async (req: Request, res: Response) => {
     try {
       const userId = str(req.query.userId);
-      const announcement = await getMyAnnouncement(userId);
-      return res.json({ success: true, announcement });
+      const announcements = await getMyAnnouncements(userId);
+      return res.json({ success: true, announcements });
     } catch (error) {
       return handleError(res, error);
     }

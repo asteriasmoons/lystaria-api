@@ -90,10 +90,14 @@ function activeJoinedCount(group: IBuddyGroup): number {
 export async function postAnnouncement(
   input: PostAnnouncementInput,
 ): Promise<IBuddyAnnouncement> {
-  await BuddyAnnouncement.updateMany(
-    { ownerUserId: input.ownerUserId, isActive: true },
-    { isActive: false },
-  );
+  const activeCount = await BuddyAnnouncement.countDocuments({
+    ownerUserId: input.ownerUserId,
+    isActive: true,
+  });
+
+  if (activeCount >= 3) {
+    throw new Error("ANNOUNCEMENT_LIMIT_REACHED");
+  }
 
   const expiresAt = new Date(Date.now() + ANNOUNCEMENT_TTL_MS);
 
@@ -131,10 +135,10 @@ export async function getBoard(
   }).sort({ createdAt: -1 });
 }
 
-export async function getMyAnnouncement(
+export async function getMyAnnouncements(
   ownerUserId: string,
-): Promise<IBuddyAnnouncement | null> {
-  return BuddyAnnouncement.findOne({ ownerUserId, isActive: true });
+): Promise<IBuddyAnnouncement[]> {
+  return BuddyAnnouncement.find({ ownerUserId, isActive: true }).sort({ createdAt: -1 });
 }
 
 export async function removeAnnouncement(
