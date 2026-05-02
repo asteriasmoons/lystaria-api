@@ -44,7 +44,7 @@ app.use("/api/shared-events", sharedEventsRouter);
 app.use("/api/buddy", createBuddyRouter(io));
 app.use("/api/sprint", createSprintRouter(io));
 app.use("/api/user", userRouter);
-app.use("/api/ai", wellnessWallRoutes);
+app.use("/api", wellnessWallRoutes);
 
 io.on("connection", (socket) => {
   socket.on("buddy:join_room", (groupId: string) => {
