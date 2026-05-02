@@ -52,19 +52,55 @@ router.post("/wellness-wall", async (req, res) => {
     const prompt = `
 Write four Wellness Wall insights for a self-care dashboard.
 
-Rules:
-- Return valid JSON only.
-- Return exactly these keys: journal, water, steps, habits.
-- Each value must be one sentence.
-- Each sentence must include one specific data point.
-- Each sentence must include one interpretation.
-- Journal focuses on today's journal tags and themes.
-- Water focuses on hydration progress.
-- Steps focuses on movement level.
-- Habits focuses on routine completion.
-- Do not repeat the same phrasing between categories.
-- Do not give generic motivation.
-- Do not diagnose, moralize, or overstate.
+Return valid JSON only with exactly these keys:
+journal, water, steps, habits.
+
+Each category value must be exactly two sentences. Do not return one sentence. Do not return three or more sentences.
+
+General rules:
+- Each category must name at least one specific data point from the data.
+- Each category must include an interpretation of what that data may suggest today.
+- The two sentences inside each category should work together: sentence one names the data, sentence two interprets what is notable or worth noticing.
+- Do not repeat phrasing, rhythm, sentence openings, or sentence structure across categories.
+- Do not make every category sound like the same sentence with different numbers swapped in.
+- Vary the wording naturally so the wall does not feel repetitive, robotic, or monotone.
+- Do not give generic motivation or encouragement.
+- Do not diagnose, moralize, exaggerate, or overstate.
+- Keep the tone warm, grounded, neutral, and observant.
+- Do not shame low numbers.
+- If a value is low or missing, describe it neutrally (e.g., "still in progress" or "not yet logged").
+
+Each category must feel distinct and purposeful. Do not simply summarize the data.
+Each insight should:
+- Reference real values from the data.
+- Interpret what those values suggest.
+- Highlight what feels notable, different, or worth noticing about today.
+
+Category guidance:
+
+Journal:
+- Focus on themes, emotional tone, or focus of writing based on tags.
+- Reflect what the entries suggest about mental or emotional direction.
+
+Water:
+- Focus on hydration progress relative to the goal.
+- Interpret how this level of hydration may affect energy or physical comfort.
+
+Steps:
+- Focus on movement level relative to the goal.
+- Describe whether movement is light, steady, or strong today.
+
+Habits:
+- Focus on routine follow-through.
+- Describe whether routines are holding, partially complete, or still open.
+
+Output example shape only:
+{
+  "journal": "Sentence one. Sentence two.",
+  "water": "Sentence one. Sentence two.",
+  "steps": "Sentence one. Sentence two.",
+  "habits": "Sentence one. Sentence two."
+}
 
 Data:
 ${JSON.stringify(body, null, 2)}
