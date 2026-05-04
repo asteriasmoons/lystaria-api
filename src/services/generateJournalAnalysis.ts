@@ -25,7 +25,7 @@ export async function generateJournalAnalysis(
   const body = {
     model: MODEL,
     temperature: 0.7,
-    max_tokens: 600,
+    max_tokens: 2222,
     messages: [
       {
         role: "system",
