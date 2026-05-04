@@ -54,29 +54,39 @@ Return nothing except the JSON object.`,
     body: JSON.stringify(body),
   });
 
+  console.log("[analyze] Groq status:", resp.status);
+
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
+    console.error("[analyze] Groq error body:", text);
     throw new Error(`Groq error ${resp.status}: ${text}`);
   }
 
   const json: any = await resp.json();
   const raw = String(json?.choices?.[0]?.message?.content || "").trim();
+  console.log("[analyze] Groq raw response:", raw);
 
   // Strip any accidental markdown fences
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+  console.log("[analyze] Cleaned response:", cleaned);
 
   let parsed: any;
   try {
     parsed = JSON.parse(cleaned);
-  } catch {
+  } catch (e) {
+    console.error("[analyze] JSON parse error:", e);
     throw new Error(`Failed to parse Groq JSON response: ${cleaned}`);
   }
+
+  console.log("[analyze] Parsed:", JSON.stringify(parsed));
 
   const themes = Array.isArray(parsed.themes)
     ? parsed.themes.map((t: any) => String(t).trim()).filter(Boolean)
     : [];
   const mood = String(parsed.mood || "").trim();
   const reflection = String(parsed.reflection || "").trim();
+
+  console.log("[analyze] themes:", themes, "mood:", mood, "reflection length:", reflection.length);
 
   if (!mood || !reflection || themes.length === 0) {
     throw new Error("Groq returned incomplete analysis fields");

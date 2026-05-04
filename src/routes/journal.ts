@@ -46,6 +46,12 @@ router.post("/analyze", async (req, res) => {
     const userId = String(req.body?.userId || "").trim();
     const entries: { title: string; body: string }[] = req.body?.entries ?? [];
 
+    console.log("[analyze] userId:", userId, "entries count:", entries.length);
+    if (entries.length > 0 && entries[0]) {
+      const first = entries[0] as { title: string; body: string };
+      console.log("[analyze] first entry body length:", first.body?.length);
+    }
+
     if (!userId) {
       return res.status(400).json({ error: "Missing userId" });
     }
