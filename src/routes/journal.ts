@@ -40,6 +40,39 @@ router.post("/prompt", async (req, res) => {
   }
 });
 
+// GET /api/journal/analyze
+router.get("/analyze", async (req, res) => {
+  try {
+    const userId = String(req.query?.userId || "").trim();
+
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    const dateKey = chicagoDateKey(new Date());
+
+    const existing = await DailyJournalAnalysis.findOne({ userId, dateKey }).lean();
+
+    if (!existing) {
+      return res.json({
+        exists: false,
+        dateKey,
+      });
+    }
+
+    return res.json({
+      exists: true,
+      themes: existing.themes,
+      mood: existing.mood,
+      reflection: existing.reflection,
+      dateKey,
+      cached: true,
+    });
+  } catch (error) {
+    console.error("Journal fetch error:", error);
+    return res.status(500).json({ error: "Failed to fetch analysis" });
+  }
+});
 // POST /api/journal/analyze
 router.post("/analyze", async (req, res) => {
   try {
