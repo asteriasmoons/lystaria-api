@@ -68,11 +68,21 @@ Return nothing except the JSON object.`,
 
   // Strip any accidental markdown fences
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+
+  // Groq sometimes emits literal newlines inside JSON string values which breaks JSON.parse.
+  // Replace any literal newline/carriage-return inside a JSON string with the escape sequence.
+  const sanitized = cleaned.replace(/"([^"]*)"/gs, (_match: string, inner: string) => {
+    const escaped = inner
+      .replace(/\r\n/g, "\\n")
+      .replace(/\r/g, "\\n")
+      .replace(/\n/g, "\\n");
+    return `"${escaped}"`;
+  });
   console.log("[analyze] Cleaned response:", cleaned);
 
   let parsed: any;
   try {
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(sanitized);
   } catch (e) {
     console.error("[analyze] JSON parse error:", e);
     throw new Error(`Failed to parse Groq JSON response: ${cleaned}`);
