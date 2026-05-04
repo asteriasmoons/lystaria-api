@@ -25,7 +25,8 @@ export async function generateJournalAnalysis(
   const body = {
     model: MODEL,
     temperature: 0.7,
-    max_tokens: 1024,
+    max_tokens: 2222,
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
@@ -34,7 +35,7 @@ export async function generateJournalAnalysis(
 Strict rules you must never break:
 - NEVER tell the user what they should do, work on, explore, fix, or change
 - NEVER frame anything as a problem, challenge, or struggle to be addressed
-- NEVER use language like "struggling", "stuck", "reliance", "afraid", "numb", "overcome", "it's time to", "remember to", "I encourage you to"
+- NEVER use language like "struggling", "stuck", "reliance", "afraid", "numb", "overcome", "it's time to", "remember to", "I encourage you to", "keep taking care", "you're not alone"
 - NEVER ask questions, rhetorical or otherwise
 - NEVER reference journal entry titles directly
 - NEVER offer advice, suggestions, or next steps of any kind
@@ -42,12 +43,10 @@ Strict rules you must never break:
 - DO make the user feel seen and understood, not assessed or coached
 - DO write as if you are sitting quietly beside them, not above them
 
-Return ONLY a valid JSON object with exactly these keys:
+You must return a JSON object with exactly these keys:
 - "themes": array of 2–4 short theme strings capturing what they wrote about (e.g. "gratitude", "rest", "longing", "creativity")
 - "mood": single word or short phrase for the emotional tone present in their writing (e.g. "reflective", "tender", "heavy", "hopeful")
-- "reflection": two full paragraphs written in a gentle, warm tone that mirrors back what the user expressed. Each paragraph 3–5 sentences. Separate with a single newline character \\n. No advice. No questions. No suggestions. Just presence and recognition.
-
-Return nothing except the JSON object.`,
+- "reflection": a single string containing two paragraphs separated by \\n. Each paragraph 3–5 sentences. Warm, gentle, no advice, no questions, no suggestions. Just presence and recognition.`,
       },
       {
         role: "user",
@@ -55,6 +54,8 @@ Return nothing except the JSON object.`,
       },
     ],
   };
+
+  console.log("[analyze] Sending request to Groq...");
 
   const resp = await fetch(GROQ_URL, {
     method: "POST",
@@ -77,25 +78,12 @@ Return nothing except the JSON object.`,
   const raw = String(json?.choices?.[0]?.message?.content || "").trim();
   console.log("[analyze] Groq raw response:", raw);
 
-  // Strip any accidental markdown fences
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-
-  // Groq sometimes emits literal newlines inside JSON string values which breaks JSON.parse.
-  // Replace any literal newline/carriage-return inside a JSON string with the escape sequence.
-  const sanitized = cleaned.replace(/"([^"]*)"/gs, (_match: string, inner: string) => {
-    const escaped = inner
-      .replace(/\r\n/g, "\\n")
-      .replace(/\r/g, "\\n")
-      .replace(/\n/g, "\\n");
-    return `"${escaped}"`;
-  });
-
   let parsed: any;
   try {
-    parsed = JSON.parse(sanitized);
+    parsed = JSON.parse(raw);
   } catch (e) {
     console.error("[analyze] JSON parse error:", e);
-    throw new Error(`Failed to parse Groq JSON response: ${cleaned}`);
+    throw new Error(`Failed to parse Groq JSON response: ${raw}`);
   }
 
   console.log("[analyze] Parsed:", JSON.stringify(parsed));
