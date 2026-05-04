@@ -52,7 +52,10 @@ Write with warmth, depth, and emotional nuance.
 Sound like a thoughtful journal companion, not a therapist, coach, or report generator.
 
 Return a JSON object with exactly these keys:
-- "themes": array of 2–4 short theme strings
+- "themes": array of 2–4 theme tags. 
+Each theme must be 1–3 words max. 
+No full sentences. No punctuation like "vs." or commas. 
+Keep them simple, clear, and scannable (e.g. "low energy", "seeking support", "creative comfort").
 - "mood": single word or short phrase for the emotional tone
 - "reflection": a single string containing two paragraphs separated by \\n. Each paragraph 3–5 sentences. The reflection should feel insightful, emotionally specific, and gently interpretive without becoming advice.`,
       },
