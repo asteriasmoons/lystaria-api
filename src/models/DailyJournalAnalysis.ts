@@ -2,6 +2,7 @@ import { Schema, model, Document } from "mongoose";
 
 export interface DailyJournalAnalysisDoc extends Document {
   userId: string;
+  bookId: string;
   dateKey: string;
   themes: string[];
   mood: string;
@@ -13,6 +14,7 @@ export interface DailyJournalAnalysisDoc extends Document {
 const DailyJournalAnalysisSchema = new Schema<DailyJournalAnalysisDoc>(
   {
     userId: { type: String, required: true, index: true },
+    bookId: { type: String, required: true, index: true },
     dateKey: { type: String, required: true, index: true },
     themes: { type: [String], required: true, default: [] },
     mood: { type: String, required: true, default: "" },
@@ -21,7 +23,7 @@ const DailyJournalAnalysisSchema = new Schema<DailyJournalAnalysisDoc>(
   { timestamps: true },
 );
 
-DailyJournalAnalysisSchema.index({ userId: 1, dateKey: 1 }, { unique: true });
+DailyJournalAnalysisSchema.index({ userId: 1, bookId: 1, dateKey: 1 }, { unique: true });
 
 export const DailyJournalAnalysis = model<DailyJournalAnalysisDoc>(
   "DailyJournalAnalysis",
