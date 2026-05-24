@@ -18,6 +18,7 @@ import wellnessWallRoutes from "./routes/wellness-wall";
 import spiritualRoutes from "./routes/spiritual";
 import moodRoutes from "./routes/mood";
 
+import path from "path";
 dotenv.config();
 
 const app = express();
