@@ -1,7 +1,26 @@
 import { Router } from "express";
-import { generateChecklist } from "../services/generateChecklist";
+import { generateChecklist, generateTaskInstructions } from "../services/generateChecklist";
 
 const router = Router();
+
+// POST /api/checklist/generate-instructions
+router.post("/generate-instructions", async (req, res) => {
+  try {
+    const taskName = typeof req.body?.taskName === "string"
+      ? req.body.taskName.trim()
+      : "";
+
+    if (!taskName) {
+      return res.status(400).json({ error: "taskName must be a non-empty string" });
+    }
+
+    const instructions = await generateTaskInstructions(taskName);
+    return res.json({ instructions });
+  } catch (error) {
+    console.error("Instructions generation error:", error);
+    return res.status(500).json({ error: "Failed to generate instructions" });
+  }
+});
 
 // POST /api/checklist/generate-single
 router.post("/generate-single", async (req, res) => {

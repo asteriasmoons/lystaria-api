@@ -4,6 +4,62 @@ function pickModel() {
   return process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 }
 
+export async function generateTaskInstructions(
+  taskName: string
+): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("Missing GROQ_API_KEY");
+
+  const body = {
+    model: pickModel(),
+    temperature: 0.7,
+    max_tokens: 80,
+    messages: [
+      {
+        role: "system",
+        content: `You write a single short instruction line for a household task.
+
+Rules:
+- Return plain text only. No JSON, no bullet points, no markdown, no quotes.
+- Maximum 56 characters — this is a hard limit.
+- The instruction must be a complete, imperative sentence describing how to do the task.
+- Be specific and practical. Do not start with the task name.
+- Do not include words like "Note:", "Tip:", or any prefix.
+- Output only the instruction string and nothing else.`,
+      },
+      {
+        role: "user",
+        content: `Task: ${taskName}`,
+      },
+    ],
+  };
+
+  const resp = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(`Groq error ${resp.status}: ${text}`);
+  }
+
+  const json: any = await resp.json();
+  const raw = String(json?.choices?.[0]?.message?.content || "").trim();
+
+  // Strip any surrounding quotes the model might add
+  const cleaned = raw.replace(/^"+|"+$/g, "").trim();
+
+  if (!cleaned) throw new Error("Groq returned empty instructions");
+
+  // Hard-enforce the 56-char cap
+  return cleaned.slice(0, 56);
+}
+
 export async function generateChecklist(
   taskNames: string[],
   prompt?: string
