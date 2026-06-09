@@ -143,8 +143,9 @@ router.post("/analyze", async (req, res) => {
       cached: false,
     });
   } catch (error) {
-    console.error("Journal analysis error:", error);
-    return res.status(500).json({ error: "Failed to generate analysis" });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Journal analysis error:", message);
+    return res.status(500).json({ error: message || "Failed to generate analysis" });
   }
 });
 

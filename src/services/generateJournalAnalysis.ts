@@ -120,14 +120,27 @@ Reflection rules:
 
   console.log("[analyze] Sending request to Groq...");
 
-  const resp = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+
+  let resp: Response;
+  try {
+    resp = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    clearTimeout(timeout);
+    if (err?.name === "AbortError") throw new Error("Groq request timed out after 60s");
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   console.log("[analyze] Groq status:", resp.status);
 
