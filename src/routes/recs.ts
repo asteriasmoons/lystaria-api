@@ -3,6 +3,9 @@ import { Router } from "express";
 const router = Router();
 
 const BIG_BOOK_API_BASE_URL = "https://api.bigbookapi.com";
+const MIN_RECOMMENDATION_YEAR = 2020;
+const SEARCH_CANDIDATE_COUNT = 30;
+const FINAL_RECOMMENDATION_COUNT = 10;
 
 type BigBookAuthor = {
   id?: number;
@@ -229,7 +232,7 @@ router.post("/", async (req, res) => {
     const searchData = await bigBookFetch<BigBookSearchResponse>("/search-books", {
       query,
       genres: normalizedGenre,
-      number: 10,
+      number: SEARCH_CANDIDATE_COUNT,
       offset: 0,
     });
 
@@ -238,12 +241,24 @@ router.post("/", async (req, res) => {
     console.log("Big Book available:", searchData.available ?? 0);
     console.log("Big Book usable search books:", searchBooks.length);
 
-    const detailedBooks = await Promise.all(searchBooks.slice(0, 10).map(fetchBookDetails));
+    const detailedBooks = await Promise.all(
+      searchBooks.slice(0, SEARCH_CANDIDATE_COUNT).map(fetchBookDetails)
+    );
 
-    const recs = detailedBooks
+    const mappedRecs = detailedBooks
       .map(toLumeyRec)
-      .filter((rec): rec is LumeyBookRec => Boolean(rec))
-      .slice(0, 10);
+      .filter((rec): rec is LumeyBookRec => Boolean(rec));
+
+    console.log(
+      "Big Book recommendation years:",
+      mappedRecs.map((rec) => ({ title: rec.title, releaseYear: rec.releaseYear ?? null }))
+    );
+
+    const recs = mappedRecs
+      .filter((rec) => typeof rec.releaseYear === "number" && rec.releaseYear >= MIN_RECOMMENDATION_YEAR)
+      .slice(0, FINAL_RECOMMENDATION_COUNT);
+
+    console.log("Big Book recommendations after year filter:", recs.length);
 
     return res.json({ recs });
   } catch (err) {
