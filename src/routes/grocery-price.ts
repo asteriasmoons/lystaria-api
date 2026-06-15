@@ -22,10 +22,12 @@ router.post("/", async (req, res) => {
   try {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
+      console.error("[grocery-price] GROQ_API_KEY is missing");
       return res.status(500).json({ error: "Missing GROQ_API_KEY" });
     }
 
     const { ingredient, store, quantity } = req.body as PriceLookupRequest;
+    console.log(`[grocery-price] Request: ingredient="${ingredient}" store="${store}" quantity=${quantity}`);
 
     if (!ingredient || !store) {
       return res.status(400).json({ error: "Missing ingredient or store" });
@@ -66,8 +68,8 @@ router.post("/", async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Groq API error:", response.status, errText);
-      return res.status(502).json({ error: "Price lookup failed" });
+      console.error(`[grocery-price] Groq API error: ${response.status} ${errText}`);
+      return res.status(502).json({ error: "Price lookup failed", status: response.status, detail: errText });
     }
 
     const data = (await response.json()) as {
@@ -75,6 +77,8 @@ router.post("/", async (req, res) => {
     };
 
     const content = data.choices?.[0]?.message?.content?.trim() || "";
+    console.log(`[grocery-price] Groq response status: ${response.status}`);
+    console.log(`[grocery-price] Groq raw content: ${content}`);
 
     let results: { price: number; name: string }[] = [];
 
@@ -97,6 +101,11 @@ router.post("/", async (req, res) => {
       }
     }
 
+    console.log(`[grocery-price] Parsed ${results.length} results`);
+    if (results.length > 0 && results[0]) {
+      console.log(`[grocery-price] First result: ${results[0].name} @ ${results[0].price}`);
+    }
+
     return res.json({
       results: results.slice(0, 5),
       ingredient,
@@ -104,8 +113,8 @@ router.post("/", async (req, res) => {
       quantity,
     });
   } catch (error) {
-    console.error("Price lookup error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("[grocery-price] Unhandled error:", error);
+    return res.status(500).json({ error: "Internal server error", detail: String(error) });
   }
 });
 
