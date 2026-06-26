@@ -22,6 +22,7 @@ import bookSearchRouter from "./routes/bookSearch";
 import groceryPriceRouter from "./routes/grocery-price";
 import challengeRoutes from "./routes/challenge";
 import lumeyChallengeRoutes from "./routes/lumeyChallengeRoutes";
+import lumeyChallengeSocialRoutes from "./routes/lumeyChallengeSocialRoutes";
 
 import path from "path";
 dotenv.config();
@@ -60,6 +61,8 @@ app.use("/api/books/search", bookSearchRouter);
 app.use("/api/grocery-price", groceryPriceRouter);
 app.use("/api/challenge", challengeRoutes);
 app.use("/api/lumey/challenges", lumeyChallengeRoutes);
+app.use("/api/lumey/challenges", lumeyChallengeSocialRoutes);
+
 
 io.on("connection", (socket) => {
   socket.on("buddy:join_room", (groupId: string) => {

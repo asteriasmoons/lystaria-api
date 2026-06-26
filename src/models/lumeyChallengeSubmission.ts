@@ -1,0 +1,54 @@
+import mongoose from "mongoose";
+
+const lumeyChallengeSubmissionSchema = new mongoose.Schema(
+  {
+    challengeID: { type: String, required: true },
+    entryID: { type: String, default: "" },
+
+    userID: { type: String, required: true },
+    username: { type: String, required: true },
+
+    linkedBookIDs: [{ type: String }],
+    linkedSessionIDs: [{ type: String }],
+    linkedReviewIDs: [{ type: String }],
+    linkedReadingListIDs: [{ type: String }],
+
+    submissionNote: { type: String, default: "" },
+    proofSummary: { type: String, default: "" },
+
+    validationStatus: {
+      type: String,
+      default: "submitted",
+    },
+
+    validationMessage: {
+      type: String,
+      default: "",
+    },
+
+    submittedDate: {
+      type: Date,
+      default: Date.now,
+    },
+
+    approvedDate: Date,
+
+    likeCount: {
+      type: Number,
+      default: 0,
+    },
+
+    commentCount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const LumeyChallengeSubmission = mongoose.model(
+  "LumeyChallengeSubmission",
+  lumeyChallengeSubmissionSchema,
+);
