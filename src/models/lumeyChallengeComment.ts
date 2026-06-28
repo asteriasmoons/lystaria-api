@@ -9,6 +9,13 @@ const lumeyChallengeCommentSchema = new mongoose.Schema(
       index: true,
     },
 
+    parentCommentID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LumeyChallengeComment",
+      default: null,
+      index: true,
+    },
+
     userID: {
       type: String,
       required: true,
@@ -35,6 +42,12 @@ const lumeyChallengeCommentSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+
+    likeCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     createdDate: {

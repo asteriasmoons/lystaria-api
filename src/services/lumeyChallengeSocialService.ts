@@ -5,6 +5,7 @@ import { LumeyChallengeProfile } from "../models/lumeyChallengeProfile";
 import { LumeyChallengeFeedItem } from "../models/lumeyChallengeFeedItem";
 import { LumeyChallengePost } from "../models/lumeyChallengePost";
 import cloudinary from "../utils/cloudinary";
+import { LumeyChallengeCommentLike } from "../models/lumeyChallengeCommentLike";
 
 export async function getChallengeFeed() {
   const feedItems = await LumeyChallengeFeedItem.find()
@@ -27,6 +28,10 @@ export async function getChallengeFeed() {
     .sort({ createdDate: -1 })
     .lean();
 
+  const commentLikes = await LumeyChallengeCommentLike.find()
+    .sort({ createdDate: -1 })
+    .lean();
+
   const profiles = await LumeyChallengeProfile.find()
     .sort({ username: 1 })
     .lean();
@@ -37,6 +42,7 @@ export async function getChallengeFeed() {
     posts,
     comments,
     likes,
+    commentLikes,
     profiles,
   };
 }
@@ -273,6 +279,7 @@ export async function addFeedItemComment(input: {
   avatarName?: string;
   avatarURL?: string;
   text: string;
+  parentCommentID?: string;
 }) {
   if (!input.feedItemID) throw new Error("feedItemID is required.");
   if (!input.userID) throw new Error("userID is required.");
@@ -287,11 +294,13 @@ export async function addFeedItemComment(input: {
 
   const comment = await LumeyChallengeComment.create({
     feedItemID: input.feedItemID,
+    parentCommentID: input.parentCommentID || null,
     userID: input.userID,
     username,
     avatarName: cleanString(input.avatarName),
     avatarURL: cleanString(input.avatarURL),
     text,
+    likeCount: 0,
     createdDate: new Date(),
   });
 
@@ -324,6 +333,41 @@ export async function deleteComment(commentID: string) {
   return {
     deleted: true,
   };
+}
+
+export async function toggleCommentLike(input: {
+  commentID: string;
+  userID: string;
+}) {
+  if (!input.commentID) throw new Error("commentID is required.");
+  if (!input.userID) throw new Error("userID is required.");
+
+  const comment = await LumeyChallengeComment.findById(input.commentID);
+  if (!comment) throw new Error("Comment not found.");
+
+  const existing = await LumeyChallengeCommentLike.findOne({
+    commentID: input.commentID,
+    userID: input.userID,
+  });
+
+  if (existing) {
+    await existing.deleteOne();
+    comment.likeCount = Math.max(0, comment.likeCount - 1);
+    await comment.save();
+
+    return { liked: false, likeCount: comment.likeCount };
+  }
+
+  await LumeyChallengeCommentLike.create({
+    commentID: input.commentID,
+    userID: input.userID,
+    createdDate: new Date(),
+  });
+
+  comment.likeCount += 1;
+  await comment.save();
+
+  return { liked: true, likeCount: comment.likeCount };
 }
 
 export async function getUserProfile(userID: string) {

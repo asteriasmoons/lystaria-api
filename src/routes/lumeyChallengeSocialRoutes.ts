@@ -7,6 +7,7 @@ import {
   approveSubmissionAndPostToFeed,
   getChallengeFeed,
   toggleFeedItemLike,
+  toggleCommentLike,
   addFeedItemComment,
   deleteComment,
   getUserProfile,
@@ -176,6 +177,7 @@ router.post(
         avatarName: req.body.avatarName,
         avatarURL: req.body.avatarURL,
         text: req.body.text,
+        parentCommentID: req.body.parentCommentID,
       });
 
       return res.status(201).json(comment);
@@ -210,6 +212,34 @@ router.delete("/comments/:commentID", async (req: Request, res: Response) => {
 
     return res.status(400).json({
       message: error?.message ?? "Unable to delete comment.",
+    });
+  }
+});
+
+/**
+ * POST /api/lumey/challenges/comments/:commentID/like
+ */
+router.post("/comments/:commentID/like", async (req: Request, res: Response) => {
+  try {
+    const commentID = String(req.params.commentID || "").trim();
+
+    if (!commentID) {
+      return res.status(400).json({
+        message: "commentID is required.",
+      });
+    }
+
+    const result = await toggleCommentLike({
+      commentID,
+      userID: req.body.userID,
+    });
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error("[lumey-challenges] like comment:", error);
+
+    return res.status(400).json({
+      message: error?.message ?? "Unable to update comment like.",
     });
   }
 });
