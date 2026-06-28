@@ -6,6 +6,7 @@ import { LumeyChallengeFeedItem } from "../models/lumeyChallengeFeedItem";
 import { LumeyChallengePost } from "../models/lumeyChallengePost";
 import cloudinary from "../utils/cloudinary";
 import { LumeyChallengeCommentLike } from "../models/lumeyChallengeCommentLike";
+import { LumeyFeedAnnouncement } from "../models/lumeyFeedAnnouncement";
 
 export async function getChallengeFeed() {
   const feedItems = await LumeyChallengeFeedItem.find()
@@ -36,6 +37,10 @@ export async function getChallengeFeed() {
     .sort({ username: 1 })
     .lean();
 
+  const announcements = await LumeyFeedAnnouncement.find({ isActive: true })
+    .sort({ createdDate: -1 })
+    .lean();
+
   return {
     feedItems,
     submissions,
@@ -44,6 +49,7 @@ export async function getChallengeFeed() {
     likes,
     commentLikes,
     profiles,
+    announcements,
   };
 }
 
@@ -447,6 +453,56 @@ async function ensureProfile(input: { userID: string; username: string }) {
     followersCount: 0,
     followingCount: 0,
   });
+}
+
+// ─── Announcements ───────────────────────────────────────────────
+
+export async function createAnnouncement(input: {
+  title: string;
+  body: string;
+  authorUserID: string;
+  authorUsername: string;
+}) {
+  const title = cleanString(input.title);
+  const body = cleanString(input.body);
+
+  if (!title) throw new Error("Announcement title is required.");
+  if (!body) throw new Error("Announcement body is required.");
+  if (!input.authorUserID) throw new Error("authorUserID is required.");
+
+  const announcement = await LumeyFeedAnnouncement.create({
+    title,
+    body,
+    authorUserID: input.authorUserID,
+    authorUsername: cleanString(input.authorUsername) || "Lumey",
+    isActive: true,
+    createdDate: new Date(),
+  });
+
+  return announcement;
+}
+
+export async function getActiveAnnouncements() {
+  return LumeyFeedAnnouncement.find({ isActive: true })
+    .sort({ createdDate: -1 })
+    .lean();
+}
+
+export async function updateAnnouncementActive(
+  announcementID: string,
+  isActive: boolean,
+) {
+  if (!announcementID) throw new Error("announcementID is required.");
+
+  const announcement =
+    await LumeyFeedAnnouncement.findById(announcementID);
+
+  if (!announcement) throw new Error("Announcement not found.");
+
+  announcement.isActive = isActive;
+  await announcement.save();
+
+  return announcement;
 }
 
 function cleanString(value: unknown): string {

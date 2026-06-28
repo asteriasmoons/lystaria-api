@@ -1,0 +1,51 @@
+import mongoose from "mongoose";
+
+const lumeyDirectMessageSchema = new mongoose.Schema(
+  {
+    conversationID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LumeyConversation",
+      required: true,
+      index: true,
+    },
+
+    senderUserID: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    senderUsername: {
+      type: String,
+      required: true,
+    },
+
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 5000,
+    },
+
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
+
+    createdDate: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+lumeyDirectMessageSchema.index({ conversationID: 1, createdDate: 1 });
+
+export const LumeyDirectMessage = mongoose.model(
+  "LumeyDirectMessage",
+  lumeyDirectMessageSchema,
+);

@@ -12,6 +12,9 @@ import {
   deleteComment,
   getUserProfile,
   updateUserProfile,
+  createAnnouncement,
+  getActiveAnnouncements,
+  updateAnnouncementActive,
 } from "../services/lumeyChallengeSocialService";
 
 const router = Router();
@@ -293,5 +296,72 @@ router.put("/profiles/:userID", async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * POST /api/lumey/challenges/feed/announcements
+ * Body: { title, body, authorUserID, authorUsername }
+ */
+router.post("/feed/announcements", async (req: Request, res: Response) => {
+  try {
+    const announcement = await createAnnouncement(req.body);
+
+    return res.status(201).json(announcement);
+  } catch (error: any) {
+    console.error("[lumey-challenges] create announcement:", error);
+
+    return res.status(400).json({
+      message: error?.message ?? "Unable to create announcement.",
+    });
+  }
+});
+
+/**
+ * GET /api/lumey/challenges/feed/announcements
+ */
+router.get("/feed/announcements", async (_req: Request, res: Response) => {
+  try {
+    const announcements = await getActiveAnnouncements();
+
+    return res.status(200).json(announcements);
+  } catch (error: any) {
+    console.error("[lumey-challenges] get announcements:", error);
+
+    return res.status(500).json({
+      message: error?.message ?? "Unable to load announcements.",
+    });
+  }
+});
+
+/**
+ * PUT /api/lumey/challenges/feed/announcements/:announcementID
+ * Body: { isActive }
+ */
+router.put(
+  "/feed/announcements/:announcementID",
+  async (req: Request, res: Response) => {
+    try {
+      const announcementID = String(req.params.announcementID || "").trim();
+
+      if (!announcementID) {
+        return res.status(400).json({
+          message: "announcementID is required.",
+        });
+      }
+
+      const announcement = await updateAnnouncementActive(
+        announcementID,
+        Boolean(req.body.isActive),
+      );
+
+      return res.status(200).json(announcement);
+    } catch (error: any) {
+      console.error("[lumey-challenges] update announcement:", error);
+
+      return res.status(400).json({
+        message: error?.message ?? "Unable to update announcement.",
+      });
+    }
+  },
+);
 
 export default router;
