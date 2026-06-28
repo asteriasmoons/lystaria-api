@@ -221,6 +221,10 @@ export async function getMessageableUsers(userID: string) {
   }).lean();
 
   const connectedUserIDs = new Set<string>();
+
+  // Always include yourself so you can message yourself.
+  connectedUserIDs.add(userID);
+
   for (const follow of follows) {
     if (follow.followerUserID !== userID) {
       connectedUserIDs.add(follow.followerUserID);
@@ -234,9 +238,14 @@ export async function getMessageableUsers(userID: string) {
 
   const profiles = await LumeyChallengeProfile.find({
     userID: { $in: Array.from(connectedUserIDs) },
-  }).lean();
+  })
+    .sort({ username: 1 })
+    .lean();
 
-  return profiles;
+  const me = profiles.find((profile) => profile.userID === userID);
+  const others = profiles.filter((profile) => profile.userID !== userID);
+
+  return me ? [me, ...others] : others;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────

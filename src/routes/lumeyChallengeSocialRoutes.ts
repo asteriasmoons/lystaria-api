@@ -4,6 +4,7 @@ import {
   createSubmission,
   createFeedPost,
   uploadFeedPhoto,
+  uploadProfileAvatar,
   approveSubmissionAndPostToFeed,
   getChallengeFeed,
   toggleFeedItemLike,
@@ -123,6 +124,28 @@ router.post("/feed/upload-photo", upload.single("photo"), async (req: Request, r
 
     return res.status(400).json({
       message: error?.message ?? "Unable to upload feed photo.",
+    });
+  }
+});
+
+/**
+ * POST /api/lumey/challenges/profiles/upload-avatar
+ * Uploads a profile avatar to Cloudinary and returns the CDN URL.
+ */
+router.post("/profiles/upload-avatar", upload.single("avatar"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No avatar file provided." });
+    }
+
+    const result = await uploadProfileAvatar(req.file.buffer);
+
+    return res.status(201).json(result);
+  } catch (error: any) {
+    console.error("[lumey-challenges] upload profile avatar:", error);
+
+    return res.status(400).json({
+      message: error?.message ?? "Unable to upload profile avatar.",
     });
   }
 });

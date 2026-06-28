@@ -161,7 +161,7 @@ router.get("/messageable-users", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("[lumey-messages] messageable users:", error);
 
-    return res.status(500).json({
+    return res.status(400).json({
       message: error?.message ?? "Unable to load messageable users.",
     });
   }

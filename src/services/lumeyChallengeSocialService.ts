@@ -182,6 +182,37 @@ export async function uploadFeedPhoto(fileBuffer: Buffer): Promise<{ photoURL: s
   };
 }
 
+export async function uploadProfileAvatar(
+  fileBuffer: Buffer,
+): Promise<{ avatarURL: string }> {
+  if (!fileBuffer || fileBuffer.length === 0) {
+    throw new Error("Avatar image is required.");
+  }
+
+  const result = await new Promise<any>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "lumey-avatars",
+        resource_type: "image",
+        transformation: [
+          { width: 600, height: 600, crop: "fill", gravity: "face" },
+          { quality: "auto", fetch_format: "auto" },
+        ],
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
+
+    stream.end(fileBuffer);
+  });
+
+  return {
+    avatarURL: result.secure_url,
+  };
+}
+
 export async function createFeedPost(input: any) {
   if (!input.userID) throw new Error("userID is required.");
 
@@ -399,6 +430,7 @@ export async function updateUserProfile(userID: string, input: any) {
 
   profile.username = cleanString(input.username) || profile.username;
   profile.avatarName = cleanString(input.avatarName) || profile.avatarName;
+  profile.avatarURL = cleanString(input.avatarURL) || profile.avatarURL;
   profile.bio = cleanString(input.bio) || profile.bio;
   profile.favoriteGenre = cleanString(input.favoriteGenre) || profile.favoriteGenre;
 
@@ -445,6 +477,7 @@ async function ensureProfile(input: { userID: string; username: string }) {
     userID: input.userID,
     username: input.username.trim() || "Reader",
     avatarName: "",
+    avatarURL: "",
     bio: "",
     favoriteGenre: "",
     readingStreak: 0,

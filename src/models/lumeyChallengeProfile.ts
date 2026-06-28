@@ -19,6 +19,11 @@ const lumeyChallengeProfileSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    avatarURL: {
+      type: String,
+
+      default: "",
+    },
 
     bio: {
       type: String,
