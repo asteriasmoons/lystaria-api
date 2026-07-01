@@ -1,6 +1,6 @@
 // src/models/UserProfile.ts
-
-import mongoose, { Schema, Document, Model } from "mongoose";
+import { Schema, Document, Model } from "mongoose";
+import { lumeyDB, lunixiaDB } from "../config/databases";
 
 export interface IUserProfile extends Document {
   userId: string;
@@ -17,6 +17,10 @@ const UserProfileSchema = new Schema<IUserProfile>(
   { timestamps: true },
 );
 
-export const UserProfile: Model<IUserProfile> =
-  mongoose.models.UserProfile ||
-  mongoose.model<IUserProfile>("UserProfile", UserProfileSchema);
+export const LumeyUserProfile: Model<IUserProfile> =
+  (lumeyDB.models.UserProfile as Model<IUserProfile>) ||
+  lumeyDB.model<IUserProfile>("UserProfile", UserProfileSchema);
+
+export const LunixiaUserProfile: Model<IUserProfile> =
+  (lunixiaDB.models.UserProfile as Model<IUserProfile>) ||
+  lunixiaDB.model<IUserProfile>("UserProfile", UserProfileSchema);

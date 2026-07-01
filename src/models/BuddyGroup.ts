@@ -1,5 +1,6 @@
 // src/models/BuddyGroup.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type BuddyMemberStatus = "pending" | "joined" | "left";
@@ -65,5 +66,5 @@ const BuddyGroupSchema = new Schema<IBuddyGroup>(
 );
 
 export const BuddyGroup: Model<IBuddyGroup> =
-  mongoose.models.BuddyGroup ||
-  mongoose.model<IBuddyGroup>("BuddyGroup", BuddyGroupSchema);
+  lumeyDB.models.BuddyGroup ||
+  lumeyDB.model<IBuddyGroup>("BuddyGroup", BuddyGroupSchema);

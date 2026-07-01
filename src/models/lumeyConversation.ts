@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 const lumeyConversationSchema = new mongoose.Schema(
   {
@@ -65,7 +66,6 @@ lumeyConversationSchema.index(
   { unique: true },
 );
 
-export const LumeyConversation = mongoose.model(
-  "LumeyConversation",
-  lumeyConversationSchema,
-);
+export const LumeyConversation =
+  lumeyDB.models.LumeyConversation ||
+  lumeyDB.model("LumeyConversation", lumeyConversationSchema);

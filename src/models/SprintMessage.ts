@@ -1,5 +1,6 @@
 // src/models/SprintMessage.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type SprintMessageType = "text" | "system" | "sprint_result";
@@ -32,5 +33,5 @@ const SprintMessageSchema = new Schema<ISprintMessage>(
 );
 
 export const SprintMessage: Model<ISprintMessage> =
-  mongoose.models.SprintMessage ||
-  mongoose.model<ISprintMessage>("SprintMessage", SprintMessageSchema);
+  (lumeyDB.models.SprintMessage as Model<ISprintMessage>) ||
+  lumeyDB.model<ISprintMessage>("SprintMessage", SprintMessageSchema);

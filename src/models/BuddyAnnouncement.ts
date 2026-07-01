@@ -1,5 +1,6 @@
 // src/models/BuddyAnnouncement.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IBuddyAnnouncement extends Document {
@@ -51,5 +52,8 @@ const BuddyAnnouncementSchema = new Schema<IBuddyAnnouncement>(
 );
 
 export const BuddyAnnouncement: Model<IBuddyAnnouncement> =
-  mongoose.models.BuddyAnnouncement ||
-  mongoose.model<IBuddyAnnouncement>("BuddyAnnouncement", BuddyAnnouncementSchema);
+  lumeyDB.models.BuddyAnnouncement ||
+  lumeyDB.model<IBuddyAnnouncement>(
+    "BuddyAnnouncement",
+    BuddyAnnouncementSchema,
+  );

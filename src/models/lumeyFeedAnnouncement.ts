@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 const lumeyFeedAnnouncementSchema = new mongoose.Schema(
   {
@@ -56,7 +57,6 @@ const lumeyFeedAnnouncementSchema = new mongoose.Schema(
   },
 );
 
-export const LumeyFeedAnnouncement = mongoose.model(
-  "LumeyFeedAnnouncement",
-  lumeyFeedAnnouncementSchema,
-);
+export const LumeyFeedAnnouncement =
+  lumeyDB.models.LumeyFeedAnnouncement ||
+  lumeyDB.model("LumeyFeedAnnouncement", lumeyFeedAnnouncementSchema);

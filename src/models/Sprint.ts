@@ -1,5 +1,6 @@
 // src/models/Sprint.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type SprintStatus = "waiting" | "active" | "submitting" | "finished";
@@ -60,5 +61,5 @@ const SprintSchema = new Schema<ISprint>(
 );
 
 export const Sprint: Model<ISprint> =
-  mongoose.models.Sprint ||
-  mongoose.model<ISprint>("Sprint", SprintSchema);
+  (lumeyDB.models.Sprint as Model<ISprint>) ||
+  lumeyDB.model<ISprint>("Sprint", SprintSchema);

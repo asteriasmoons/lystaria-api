@@ -1,5 +1,6 @@
 // src/models/BuddyMessage.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type BuddyMessageType = "text" | "progress_update" | "system";
@@ -42,5 +43,5 @@ const BuddyMessageSchema = new Schema<IBuddyMessage>(
 );
 
 export const BuddyMessage: Model<IBuddyMessage> =
-  mongoose.models.BuddyMessage ||
-  mongoose.model<IBuddyMessage>("BuddyMessage", BuddyMessageSchema);
+  lumeyDB.models.BuddyMessage ||
+  lumeyDB.model<IBuddyMessage>("BuddyMessage", BuddyMessageSchema);

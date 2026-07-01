@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 export type LumeyChallengeFeedItemType = "submission" | "post";
 
@@ -114,17 +115,20 @@ lumeyChallengeFeedItemSchema.pre("validate", function (next) {
     typeof this.photoURL === "string" && this.photoURL.trim().length > 0;
 
   const hasPhotoBase64 =
-    typeof this.photoBase64 === "string" &&
-    this.photoBase64.trim().length > 0;
+    typeof this.photoBase64 === "string" && this.photoBase64.trim().length > 0;
 
-  if (this.feedType === "post" && !hasPostText && !hasPhotoURL && !hasPhotoBase64) {
+  if (
+    this.feedType === "post" &&
+    !hasPostText &&
+    !hasPhotoURL &&
+    !hasPhotoBase64
+  ) {
     return next(new Error("Post feed items require text or a photo."));
   }
 
   next();
 });
 
-export const LumeyChallengeFeedItem = mongoose.model(
-  "LumeyChallengeFeedItem",
-  lumeyChallengeFeedItemSchema,
-);
+export const LumeyChallengeFeedItem =
+  lumeyDB.models.LumeyChallengeFeedItem ||
+  lumeyDB.model("LumeyChallengeFeedItem", lumeyChallengeFeedItemSchema);

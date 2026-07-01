@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 const lumeyChallengePostSchema = new mongoose.Schema(
   {
@@ -123,7 +124,6 @@ lumeyChallengePostSchema.pre("validate", function (next) {
   next();
 });
 
-export const LumeyChallengePost = mongoose.model(
-  "LumeyChallengePost",
-  lumeyChallengePostSchema,
-);
+export const LumeyChallengePost =
+  lumeyDB.models.LumeyChallengePost ||
+  lumeyDB.model("LumeyChallengePost", lumeyChallengePostSchema);

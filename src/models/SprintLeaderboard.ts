@@ -1,5 +1,6 @@
 // src/models/SprintLeaderboard.ts
 
+import { lumeyDB } from "../config/databases";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface ISprintLeaderboard extends Document {
@@ -26,5 +27,8 @@ const SprintLeaderboardSchema = new Schema<ISprintLeaderboard>(
 );
 
 export const SprintLeaderboard: Model<ISprintLeaderboard> =
-  mongoose.models.SprintLeaderboard ||
-  mongoose.model<ISprintLeaderboard>("SprintLeaderboard", SprintLeaderboardSchema);
+  (lumeyDB.models.SprintLeaderboard as Model<ISprintLeaderboard>) ||
+  lumeyDB.model<ISprintLeaderboard>(
+    "SprintLeaderboard",
+    SprintLeaderboardSchema,
+  );

@@ -1,12 +1,31 @@
-import { LumeyChallengeSubmission } from "../models/lumeyChallengeSubmission";
-import { LumeyChallengeComment } from "../models/lumeyChallengeComment";
-import { LumeyChallengeLike } from "../models/lumeyChallengeLike";
-import { LumeyChallengeProfile } from "../models/lumeyChallengeProfile";
-import { LumeyChallengeFeedItem } from "../models/lumeyChallengeFeedItem";
-import { LumeyChallengePost } from "../models/lumeyChallengePost";
+// import { LumeyChallengeSubmission } from "../models/lumeyChallengeSubmission";
+// import { LumeyChallengeComment } from "../models/lumeyChallengeComment";
+// import { LumeyChallengeLike } from "../models/lumeyChallengeLike";
+// import { LumeyChallengeProfile } from "../models/lumeyChallengeProfile";
+// import { LumeyChallengeFeedItem } from "../models/lumeyChallengeFeedItem";
+// import { LumeyChallengePost } from "../models/lumeyChallengePost";
 import cloudinary from "../utils/cloudinary";
-import { LumeyChallengeCommentLike } from "../models/lumeyChallengeCommentLike";
-import { LumeyFeedAnnouncement } from "../models/lumeyFeedAnnouncement";
+import type { Model } from "mongoose";
+// import { LumeyChallengeCommentLike } from "../models/lumeyChallengeCommentLike";
+// import { LumeyFeedAnnouncement } from "../models/lumeyFeedAnnouncement";
+
+import { LumeyChallengeSubmission as LumeyChallengeSubmissionRaw } from "../models/lumeyChallengeSubmission";
+import { LumeyChallengeComment as LumeyChallengeCommentRaw } from "../models/lumeyChallengeComment";
+import { LumeyChallengeLike as LumeyChallengeLikeRaw } from "../models/lumeyChallengeLike";
+import { LumeyChallengeProfile as LumeyChallengeProfileRaw } from "../models/lumeyChallengeProfile";
+import { LumeyChallengeFeedItem as LumeyChallengeFeedItemRaw } from "../models/lumeyChallengeFeedItem";
+import { LumeyChallengePost as LumeyChallengePostRaw } from "../models/lumeyChallengePost";
+import { LumeyChallengeCommentLike as LumeyChallengeCommentLikeRaw } from "../models/lumeyChallengeCommentLike";
+import { LumeyFeedAnnouncement as LumeyFeedAnnouncementRaw } from "../models/lumeyFeedAnnouncement";
+
+const LumeyChallengeSubmission = LumeyChallengeSubmissionRaw as Model<any>;
+const LumeyChallengeComment = LumeyChallengeCommentRaw as Model<any>;
+const LumeyChallengeLike = LumeyChallengeLikeRaw as Model<any>;
+const LumeyChallengeProfile = LumeyChallengeProfileRaw as Model<any>;
+const LumeyChallengeFeedItem = LumeyChallengeFeedItemRaw as Model<any>;
+const LumeyChallengePost = LumeyChallengePostRaw as Model<any>;
+const LumeyChallengeCommentLike = LumeyChallengeCommentLikeRaw as Model<any>;
+const LumeyFeedAnnouncement = LumeyFeedAnnouncementRaw as Model<any>;
 
 export async function getChallengeFeed() {
   const feedItems = await LumeyChallengeFeedItem.find()

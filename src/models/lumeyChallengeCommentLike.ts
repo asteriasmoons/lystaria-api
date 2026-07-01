@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 const lumeyChallengeCommentLikeSchema = new mongoose.Schema(
   {
@@ -34,7 +35,6 @@ lumeyChallengeCommentLikeSchema.index(
   },
 );
 
-export const LumeyChallengeCommentLike = mongoose.model(
-  "LumeyChallengeCommentLike",
-  lumeyChallengeCommentLikeSchema,
-);
+export const LumeyChallengeCommentLike =
+  lumeyDB.models.LumeyChallengeCommentLike ||
+  lumeyDB.model("LumeyChallengeCommentLike", lumeyChallengeCommentLikeSchema);

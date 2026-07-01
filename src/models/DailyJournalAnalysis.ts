@@ -1,4 +1,5 @@
 import { Schema, model, Document } from "mongoose";
+import { lunixiaDB } from "../config/databases";
 
 export interface DailyJournalAnalysisDoc extends Document {
   userId: string;
@@ -23,9 +24,14 @@ const DailyJournalAnalysisSchema = new Schema<DailyJournalAnalysisDoc>(
   { timestamps: true },
 );
 
-DailyJournalAnalysisSchema.index({ userId: 1, bookId: 1, dateKey: 1 }, { unique: true });
-
-export const DailyJournalAnalysis = model<DailyJournalAnalysisDoc>(
-  "DailyJournalAnalysis",
-  DailyJournalAnalysisSchema,
+DailyJournalAnalysisSchema.index(
+  { userId: 1, bookId: 1, dateKey: 1 },
+  { unique: true },
 );
+
+export const DailyJournalAnalysis =
+  lunixiaDB.models.DailyJournalAnalysis ||
+  lunixiaDB.model<DailyJournalAnalysisDoc>(
+    "DailyJournalAnalysis",
+    DailyJournalAnalysisSchema,
+  );

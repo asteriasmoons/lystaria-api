@@ -1,7 +1,19 @@
-import { LumeyConversation } from "../models/lumeyConversation";
-import { LumeyDirectMessage } from "../models/lumeyDirectMessage";
-import { LumeyChallengeFollow } from "../models/lumeyChallengeFollow";
-import { LumeyChallengeProfile } from "../models/lumeyChallengeProfile";
+// import { LumeyConversation } from "../models/lumeyConversation";
+// import { LumeyDirectMessage } from "../models/lumeyDirectMessage";
+// import { LumeyChallengeFollow } from "../models/lumeyChallengeFollow";
+// import { LumeyChallengeProfile } from "../models/lumeyChallengeProfile";
+
+import type { Model } from "mongoose";
+
+import { LumeyConversation as LumeyConversationRaw } from "../models/lumeyConversation";
+import { LumeyDirectMessage as LumeyDirectMessageRaw } from "../models/lumeyDirectMessage";
+import { LumeyChallengeFollow as LumeyChallengeFollowRaw } from "../models/lumeyChallengeFollow";
+import { LumeyChallengeProfile as LumeyChallengeProfileRaw } from "../models/lumeyChallengeProfile";
+
+const LumeyConversation = LumeyConversationRaw as Model<any>;
+const LumeyDirectMessage = LumeyDirectMessageRaw as Model<any>;
+const LumeyChallengeFollow = LumeyChallengeFollowRaw as Model<any>;
+const LumeyChallengeProfile = LumeyChallengeProfileRaw as Model<any>;
 
 /**
  * Returns the sorted participant pair so (A, B) and (B, A) always

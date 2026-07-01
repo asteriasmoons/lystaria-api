@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { lumeyDB } from "../config/databases";
 
 const lumeyChallengeSubmissionSchema = new mongoose.Schema(
   {
@@ -60,7 +61,6 @@ const lumeyChallengeSubmissionSchema = new mongoose.Schema(
   },
 );
 
-export const LumeyChallengeSubmission = mongoose.model(
-  "LumeyChallengeSubmission",
-  lumeyChallengeSubmissionSchema,
-);
+export const LumeyChallengeSubmission =
+  lumeyDB.models.LumeyChallengeSubmission ||
+  lumeyDB.model("LumeyChallengeSubmission", lumeyChallengeSubmissionSchema);
