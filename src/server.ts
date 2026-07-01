@@ -65,7 +65,6 @@ app.use("/api/lumey/challenges", lumeyChallengeRoutes);
 app.use("/api/lumey/challenges", lumeyChallengeSocialRoutes);
 app.use("/api/lumey/messages", lumeyMessagingRoutes);
 
-
 io.on("connection", (socket) => {
   socket.on("buddy:join_room", (groupId: string) => {
     socket.join(groupId);
@@ -86,14 +85,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {});
 });
 
+httpServer.listen(PORT, () => {
+  console.log(`Lystaria Apps API running on port ${PORT}`);
+});
+
 mongoose
   .connect(process.env.MONGODB_URI as string)
   .then(async () => {
     console.log("MongoDB Atlas connected");
     await restoreActiveSprintTimers(io);
-    httpServer.listen(PORT, () => {
-      console.log(`Lystaria Apps API running on port ${PORT}`);
-    });
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
